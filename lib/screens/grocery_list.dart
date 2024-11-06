@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/dummy_items.dart';
+import '../widgets/grocery_item.dart';
 
 class GroceryList extends StatelessWidget {
   const GroceryList({super.key});
@@ -13,16 +14,13 @@ class GroceryList extends StatelessWidget {
       ),
       body: ListView.builder(
         itemCount: groceryItems.length,
-        itemBuilder: (ctx, i) => ListTile(
-          leading: Container(
-            width: 24,
-            height: 24,
-            color: groceryItems[i].category.color,
-          ),
-          title: Text(groceryItems[i].name),
-          trailing: Text(groceryItems[i].quantity.toString()),
+        itemBuilder: (ctx, i) => GroceryItem(
+          categoryColor: groceryItems[i].category.color,
+          name: groceryItems[i].name,
+          quantity: groceryItems[i].quantity,
         ),
       ),
     );
   }
 }
+
