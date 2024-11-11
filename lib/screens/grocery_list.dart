@@ -1,5 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../data/categories.dart';
+import '../model/category.dart';
 import '../widgets/grocery_item.dart';
 import 'form_screen.dart';
 import '../model/grocery_item.dart';
@@ -14,11 +19,41 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList>
     with SingleTickerProviderStateMixin {
   late AnimationController animationController;
-  final List<GroceryItemModel> _groceryItems = [];
+  List<GroceryItemModel> _groceryItems = [];
+  bool _isLoading = true;
+  _loadData() async {
+    final Uri url = Uri.https(
+      'flutter-6ae9f-default-rtdb.firebaseio.com',
+      'shopping-list.json',
+    );
+    final http.Response res = await http.get(url);
+    final Map<String, dynamic> loadedData = json.decode(res.body);
+    final List<GroceryItemModel> loadedItems = [];
+    for (var item in loadedData.entries) {
+      final Category category = categories.entries
+          .firstWhere(
+            (element) => element.value.title == item.value['category'],
+          )
+          .value;
+      loadedItems.add(
+        GroceryItemModel(
+          id: item.key,
+          name: item.value['name'],
+          quantity: item.value['quantity'],
+          category: category,
+        ),
+      );
+    }
+    setState(() {
+      _groceryItems = loadedItems;
+      _isLoading = false;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadData();
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -32,6 +67,7 @@ class _GroceryListState extends State<GroceryList>
   void dispose() {
     super.dispose();
     animationController.dispose();
+    _loadData().dispose;
   }
 
   @override
@@ -40,11 +76,17 @@ class _GroceryListState extends State<GroceryList>
       child: Text('No item added yet.'),
     );
 
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     if (_groceryItems.isNotEmpty) {
       content = AnimatedBuilder(
         animation: animationController,
         builder: (context, child) => Padding(
-          padding: EdgeInsets.only(top: animationController.value * 140),
+          padding: EdgeInsets.only(top: 200 - animationController.value * 200),
           child: child,
         ),
         child: ListView.builder(
@@ -72,24 +114,27 @@ class _GroceryListState extends State<GroceryList>
         title: const Text('Your Grocery'),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push<GroceryItemModel>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FormScreen(),
-                ),
-              ).then((value) {
-                if (value == null) return;
-                setState(() {
-                  _groceryItems.add(value);
-                });
-              });
-            },
+            onPressed: _addItem,
             icon: const Icon(Icons.add),
           ),
         ],
       ),
       body: content,
     );
+  }
+
+  _addItem() async {
+    final newItem = await Navigator.push<GroceryItemModel>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FormScreen(),
+      ),
+    );
+    if (newItem == null) {
+      return;
+    }
+    setState(() {
+      _groceryItems.add(newItem);
+    });
   }
 }
