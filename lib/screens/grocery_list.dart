@@ -102,9 +102,7 @@ class _GroceryListState extends State<GroceryList>
             key: ValueKey(_groceryItems[i].id),
             background: Container(color: Theme.of(context).colorScheme.onError),
             onDismissed: (direction) {
-              setState(() {
-                _groceryItems.remove(_groceryItems[i]);
-              });
+              _removeItem(_groceryItems[i]);
             },
             child: GroceryItem(
               categoryColor: _groceryItems[i].category.color,
@@ -134,6 +132,33 @@ class _GroceryListState extends State<GroceryList>
       ),
       body: content,
     );
+  }
+
+  void _removeItem(GroceryItemModel item) async {
+    final int index = _groceryItems.indexOf(item);
+    setState(() {
+      _groceryItems.remove(item);
+    });
+    final Uri url = Uri.https(
+      'flutter-6ae9f-default-rtdb.firebaseio.com',
+      'shopping-list/${item.id}.json',
+    );
+    final http.Response res = await http.delete(
+      url,
+    );
+    if (res.statusCode >= 400) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('We could not delete the item.'),
+        ),
+      );
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).clearSnackBars();
+      setState(() {
+        _groceryItems.insert(index, item);
+      });
+    }
   }
 
   _addItem() async {
