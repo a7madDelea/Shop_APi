@@ -21,12 +21,19 @@ class _GroceryListState extends State<GroceryList>
   late AnimationController animationController;
   List<GroceryItemModel> _groceryItems = [];
   bool _isLoading = true;
+  String? _error;
+
   _loadData() async {
     final Uri url = Uri.https(
       'flutter-6ae9f-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
     final http.Response res = await http.get(url);
+    if (res.statusCode >= 400) {
+      setState(() {
+        _error = 'Faild to fetch data. Please try again later.';
+      });
+    }
     final Map<String, dynamic> loadedData = json.decode(res.body);
     final List<GroceryItemModel> loadedItems = [];
     for (var item in loadedData.entries) {
@@ -106,6 +113,12 @@ class _GroceryListState extends State<GroceryList>
             ),
           ),
         ),
+      );
+    }
+
+    if (_error != null) {
+      content = Center(
+        child: Text(_error!),
       );
     }
 
