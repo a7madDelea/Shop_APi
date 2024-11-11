@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../data/categories.dart';
 import '../model/category.dart';
-import '../model/grocery_item.dart';
 
 class FormScreen extends StatefulWidget {
   const FormScreen({super.key});
@@ -143,18 +145,29 @@ class _FormScreenState extends State<FormScreen>
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (formKey.currentState!.validate()) {
                           formKey.currentState!.save();
-                          Navigator.pop(
-                            context,
-                            GroceryItemModel(
-                              id: DateTime.now().toString(),
-                              name: _enteredName,
-                              quantity: _enteredQuantity,
-                              category: _selectedCategory,
+                          final Uri url = Uri.https(
+                            'flutter-6ae9f-default-rtdb.firebaseio.com',
+                            'shopping-list.json',
+                          );
+                          final http.Response res = await http.post(
+                            url,
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: json.encode(
+                              {
+                                'name': _enteredName,
+                                'quantity': _enteredQuantity,
+                                'category': _selectedCategory.title,
+                              },
                             ),
                           );
+                          if (res.statusCode == 200) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       child: const Text('Add Grocery'),
