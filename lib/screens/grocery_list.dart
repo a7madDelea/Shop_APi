@@ -28,33 +28,46 @@ class _GroceryListState extends State<GroceryList>
       'flutter-6ae9f-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
-    final http.Response res = await http.get(url);
-    if (res.statusCode >= 400) {
+    try {
+      final http.Response res = await http.get(url);
+      if (res.statusCode >= 400) {
+        setState(() {
+          _error = 'Faild to fetch data. Please try again later.';
+        });
+        return;
+      }
+      if (res.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      final Map<String, dynamic> loadedData = json.decode(res.body);
+      final List<GroceryItemModel> loadedItems = [];
+      for (var item in loadedData.entries) {
+        final Category category = categories.entries
+            .firstWhere(
+              (element) => element.value.title == item.value['category'],
+            )
+            .value;
+        loadedItems.add(
+          GroceryItemModel(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
       setState(() {
-        _error = 'Faild to fetch data. Please try again later.';
+        _groceryItems = loadedItems;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _error = 'Somthing went wrong. Please try again later.';
       });
     }
-    final Map<String, dynamic> loadedData = json.decode(res.body);
-    final List<GroceryItemModel> loadedItems = [];
-    for (var item in loadedData.entries) {
-      final Category category = categories.entries
-          .firstWhere(
-            (element) => element.value.title == item.value['category'],
-          )
-          .value;
-      loadedItems.add(
-        GroceryItemModel(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
   }
 
   @override
